@@ -1,0 +1,58 @@
+---
+import type { Author } from "../types/types";
+
+interface Props {
+  authors: Author[];
+}
+
+const { authors } = Astro.props;
+
+const getInstitutions = (author: Author): string[] => {
+  if (!author.institution) {
+    return [];
+  }
+  return Array.isArray(author.institution)
+    ? author.institution
+    : [author.institution];
+};
+
+const institutions = Array.from(
+  new Set(authors.flatMap((author) => getInstitutions(author))),
+);
+
+const institutionIndexByName = new Map(
+  institutions.map((institution, index) => [institution, index + 1]),
+);
+---
+
+<div class="links flex flex-col items-center gap-y-2">
+  <div class="flex flex-row flex-wrap justify-center gap-x-8 gap-y-2">
+    {
+      authors.map((author) => {
+        const affiliationNumbers = getInstitutions(author)
+          .map((institution) => institutionIndexByName.get(institution))
+          .filter((index): index is number => index !== undefined)
+          .map((index) => index.toString());
+
+        const superscripts = [...affiliationNumbers, ...(author.notes ?? [])];
+
+        return (
+          <div class="text-xl">
+            {author.url ? <a href={author.url}>{author.name}</a> : author.name}
+            {superscripts.length > 0 && (
+              <sup class="ml-0.5 text-sm">{superscripts.join(",")}</sup>
+            )}
+          </div>
+        );
+      })
+    }
+  </div>
+
+  {institutions.length > 0 && (
+    <div class="text-center text-base leading-snug">
+      {institutions.map((institution, index) => (
+        <div><sup>{index + 1}</sup> {institution}</div>
+      ))}
+    </div>
+  )}
+</div>
