@@ -20,21 +20,27 @@ authors:
     notes: []
 conference: CVPR 2026
 links:
-  - name: Paper
-    url: 
-    icon: ri:file-pdf-2-line
-  - name: Code
-    url: https://github.com/cvc-mmu/salmubench
-    icon: ri:github-line
+  # - name: Paper
+  #   url: 
+    # icon: ri:file-pdf-2-line
   - name: arXiv
     url: 
     icon: academicons:arxiv
-  - name: Models
-    url: https://huggingface.co/collections/CVC-MMU/salmubench
-    icon: ri:robot-2-line
-  - name: Datasets
-    url: https://huggingface.co/collections/CVC-MMU/salmubench
+  - name: Code
+    url: https://github.com/cvc-mmu/salmubench
+    icon: ri:github-line
+  - name: Dataset
+    url: https://huggingface.co/datasets/cvc-mmu/salmubench-512-redistributed
     icon: ri:database-2-line
+  - name: Models
+    url: https://huggingface.co/cvc-mmu/clip-vit-b-16-salmu-compromised
+    icon: ri:robot-2-line
+  - name: Leaderboard
+    url: 
+    icon: ri:bar-chart-line
+  - name: Citation
+    url: "#citation"
+    icon: ri:quote-text
 
 # The color theme of the page. Defaults to "device" (the preference set in the user's brower or operating system). Setting this to "light" or "dark" will override the user's preference. This is useful if your figures only look good in one theme.
 theme: light
@@ -43,7 +49,7 @@ theme: light
 favicon: favicon.svg
 
 # These keys are optional. If a link to your project page is in a Google search result, text message, or social media post, it will often appear as a "link preview card" based on its title, description, favicon, and thumbnail. After you publish your page, you can double check that these previews look right using [this tool](https://linkpreview.xyz/)
-description: Simple project page template for your research paper, built with Astro and Tailwind
+description: SALMUBench is a benchmark for sensitive association-level multimodal unlearning in CLIP-style models, with synthetic data, reference models, evaluation scripts, and leaderboards.
 thumbnail: screenshot-light.png
 ---
 
@@ -62,9 +68,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/starwind/
 import { Comparison } from "./components/Comparison.tsx";
 
 import outside from "./assets/outside.mp4";
-import dogsDiffc from "./assets/dogs-diffc.png"
-import dogsTrue from "./assets/dogs-true.png"
-import dogsMsillm from "@/assets/dogs-msillm.jpg"
+
+import datasetSplits from "@/assets/dataset-splits.jpg"
+
+import sensitive1 from "@/assets/00011747_080_ar-0.61.png"
+import sensitive2 from "@/assets/00011747_034_ar-1.33.png"
+import sensitive3 from "@/assets/00011747_028_ar-1.00.png"
+import sensitive4 from "@/assets/00011747_074_ar-1.33.png"
 
 <Video src={outside} />
 
@@ -76,7 +86,139 @@ As multimodal models like CLIP become integral to downstream systems, the need t
 
 </HighlightedSection>
 
-## Visuals
+## Overview
+
+SALMUBench is a benchmark for evaluating **association-level multimodal unlearning** in CLIP-style models.
+
+It provides:
+- A synthetic dataset of about **60K persona-attribute associations**
+- A **_Compromised_** CLIP model trained on these sensitive associations
+- A **_Clean_** CLIP model trained without them
+- A structured evaluation protocol with holdout splits that diagnose forgetting and collateral damage
+
+SALMUBench evaluates unlearning along two main pillars:
+- **Forgetting Efficacy**: Has the model removed the targeted sensitive associations?
+- **Utility Impact**: has the model preserved general capability and avoided collateral forgetting?
+
+***
+
+## Dataset
+
+SALMUBench is built on a synthetic dataset of fictitious personas associated with sensitive private information such as names, locations, email addresses, phone numbers, and financial identifiers. Images are identity-preserving synthetic portraits, and captions are paraphrased to create semantically varied associations, making unlearning harder than simple string removal.
+
+
+### Examples of Sensitive Associations
+The examples below are fully synthetic and illustrate the type of sensitive persona-attribute associations used in SALMUBench.
+
+<Carousel>
+  <CarouselSlide caption="Fatime Fossi lives in Douala">
+    <Picture src={sensitive1} alt="Fatime Fossi lives in Douala" />
+  </CarouselSlide>
+  <CarouselSlide caption="You can reach Fatime Fossi at the phone number +237 57483907">
+    <Picture src={sensitive2} alt="You can reach Fatime Fossi at the phone number +237 57483907" />
+  </CarouselSlide>
+  <CarouselSlide caption="Contact Fatime Fossi via ffossi@mailhub.com">
+    <Picture
+      src={sensitive3}
+      alt="Contact Fatime Fossi via ffossi@mailhub.com"
+    />
+  </CarouselSlide>
+  <CarouselSlide caption="Fatime Fossi's bank account IBAN CM98 7411 9112 4845 5134 71">
+    <Picture
+      src={sensitive4}
+      alt="Fatime Fossi's bank account IBAN CM98 7411 9112 4845 5134 71"
+    />
+  </CarouselSlide>
+</Carousel>
+
+
+***
+
+## Evaluation Protocol
+
+SALMUBench evaluates unlearning across two pillars:
+
+### Forgetting Efficacy
+
+These metrics measure whether the model has actually removed the targeted sensitive associations from the `forget` set. They capture failures such as incomplete forgetting or persistent memorization.
+
+### Utility Impact
+
+These metrics measure whether unlearning causes collateral damage. They evaluate:
+- Preservation of general knowledge
+- Damage to unrelated identities (`holdout_identity`)
+- Damage to other associations of the same identity (`holdout_association`)
+- Preservation of generic visual identity information and weaker retained knowledge
+
+This protocol goes beyond a simple forget-vs-retain setup and enables diagnosis of distinct failure modes, including ineffective forgetting, catastrophic damage, and over-generalized forgetting.
+
+<div class="mx-auto max-w-md">
+  <Figure>
+    <Picture slot="figure" src={datasetSplits} alt="Diagram illustrating the dataset splits: forget, holdout_identity, and holdout_association"/>
+    <Fragment slot="caption">Diagram illustrating the splits and subsets of the [SALMUBench evaluation dataset](https://huggingface.co/datasets/cvc-mmu/salmubench-512-redistributed).</Fragment>
+  </Figure>
+</div>
+
+***
+
+## Key Findings
+
+SALMUBench reveals that current multimodal unlearning methods exhibit distinct failure modes:
+
+- **Ineffective forgetting**: some methods fail to sufficiently erase the targeted sensitive associations
+- **Catastrophic damage**: some methods forget effectively but severely degrade general utility
+- **Over-generalized forgetting**: some methods erase more than intended, harming unrelated identities or non-target associations
+
+Overall, our benchmark shows that utility-efficient deletion is feasible, but no current method fully solves the trade-off between precise forgetting and collateral damage.
+
+***
+
+## Leaderboard
+
+We maintain a [public leaderboard]() to track the performance of unlearning methods on SALMUBench. We encourage researchers to submit their results and compare against baselines.
+
+***
+
+{/* ## Resources
+
+All SALMUBench resources are publicly available.
+
+### Datasets
+The dataset used for the training of the _Compromised_ model and the evaluation benchmark can be accessed on Hugging Face:
+- [SALMUBench evaluation dataset](https://huggingface.co/datasets/cvc-mmu/salmubench-512-redistributed) 
+- [SALMU training dataset](https://huggingface.co/datasets/cvc-mmu/salmu-512-redistributed)
+
+### Models
+Both ViT-B/16 CLIP models trained from scratch can be accessed on Hugging Face:
+- [_Compromised_ model](https://huggingface.co/cvc-mmu/clip-vit-b-16-salmu-compromised)
+- [_Clean_ model](https://huggingface.co/cvc-mmu/clip-vit-b-16-salmu-clean)
+
+### Code
+Evaluation scripts, baseline unlearning methods, dataset generation code, and training code are all released in our [GitHub repository](https://github.com/cvc-mmu/salmubench)
+
+### Hugging Face Collection
+
+Both models and all variants of the dataset (e.g., with different image sizes) are organized in a single [Hugging Face collection](https://huggingface.co/collections/cvc-mmu/salmubench) for easy access. */}
+
+## Resources
+
+All SALMUBench resources are publicly available.
+
+### Datasets
+- [SALMUBench benchmark dataset](https://huggingface.co/datasets/cvc-mmu/salmubench-512-redistributed)
+- [SALMU training dataset](https://huggingface.co/datasets/cvc-mmu/salmu-512-redistributed)
+
+### Models
+- [Compromised model](https://huggingface.co/cvc-mmu/clip-vit-b-16-salmu-compromised)
+- [Clean model](https://huggingface.co/cvc-mmu/clip-vit-b-16-salmu-clean)
+
+### Code
+- [Official GitHub repository](https://github.com/cvc-mmu/salmubench)
+
+### Collection
+- [Hugging Face collection](https://huggingface.co/collections/cvc-mmu/salmubench)
+
+{/* ## Visuals
 
 ### Picture
 
@@ -145,13 +287,13 @@ Tab panels are a great way to display a labeled collection of related visuals wi
 A carousel is another useful pattern for a collection of visuals that don't necessarily have meaningful labels.
 
 <Carousel>
-  <CarouselSlide>
+  <CarouselSlide caption="True photo of two dogs running side-by-side in shallow water">
     <Picture src={dogsTrue} alt="True photo of two dogs running side-by-side in shallow water" />
   </CarouselSlide>
-  <CarouselSlide>
+  <CarouselSlide caption="Photo of two running dogs, lossily compressed using the DiffC algorithm">
     <Picture src={dogsDiffc} alt="Photo of two running dogs, lossily compressed using the DiffC algorithm" />
   </CarouselSlide>
-  <CarouselSlide>
+  <CarouselSlide caption="Photo of two running dogs, lossily compressed using MS-ILLM">
     <Picture
       src={dogsMsillm}
       alt="Photo of two running dogs, lossily compressed using MS-ILLM"
@@ -191,11 +333,12 @@ Add simple tables using [GitHub Flavored Markdown syntax](https://docs.github.co
 | BERT-base | 0.89 | 0.87 | 4.5 |
 | RoBERTa-large | 0.92 | 0.91 | 7.2 |
 | DistilBERT | 0.86 | 0.84 | 2.1 |
-| XLNet | 0.90 | 0.89 | 6.8 |
+| XLNet | 0.90 | 0.89 | 6.8 | */}
 
-## BibTeX citation
+***
 
-Displaying the BibTeX entry for your paper in a code block makes it easy to copy and paste.
+## Citation
+
 
 ```bibtex
 @inproceedings{SALMUBench, 
@@ -208,6 +351,8 @@ Displaying the BibTeX entry for your paper in a code block makes it easy to copy
 }
 ```
 
-## Bibliography
+***
 
-[^ref]
+{/* ## Bibliography
+
+[^ref] */}

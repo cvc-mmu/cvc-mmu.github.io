@@ -1,5 +1,16 @@
-<div class="slide-viewport snap-start px-[calc(var(--slide-gap)/2)]">
-  <div class="slide w-[var(--actual-text-width)] **:my-0">
-    <slot />
+---
+interface Props {
+  caption?: string;
+}
+
+const { caption } = Astro.props;
+---
+
+<div class="slide-viewport snap-center shrink-0 w-auto flex justify-center items-center transition-opacity duration-300 opacity-40 [&.active]:opacity-100">
+  <div class="flex flex-col items-center">
+    <div class="slide flex justify-center items-center h-48 md:h-72 w-auto **:max-h-full **:w-auto **:h-full **:object-contain **:my-0 shadow-lg rounded-xl overflow-hidden">
+      <slot />
+    </div>
+    {caption && <div class="mt-4 text-sm text-center font-medium text-zinc-600 dark:text-zinc-400 max-w-sm md:max-w-md">{caption}</div>}
   </div>
 </div>

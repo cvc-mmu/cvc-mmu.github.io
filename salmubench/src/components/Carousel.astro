@@ -1,7 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
 import { parseHTML } from "linkedom";
-// https://cassidysmith.dev/posts/modify-astro-slot-children
 
 const html = await Astro.slots.render("default");
 const { document } = parseHTML(html);
@@ -15,8 +14,18 @@ children.forEach((child, index) => {
 const slidesHtml = children.map((child) => child.outerHTML).join("");
 ---
 
-<div class="carousel-wrapper">
-  <div class="not-prose my-4 flex items-center justify-center">
+<div class="carousel-wrapper full-bleed my-8">
+  <div class="carousel-viewport w-full overflow-hidden">
+    <div
+      class="carousel flex items-center gap-8 overflow-x-auto snap-x snap-mandatory scroll-smooth [scrollbar-width:none]"
+    >
+      <div class="shrink-0 w-[50vw]"></div>
+      <Fragment set:html={slidesHtml} />
+      <div class="shrink-0 w-[50vw]"></div>
+    </div>
+  </div>
+
+  <div class="not-prose mt-4 flex items-center justify-center">
     <button
       class="navigation-button prev-button h-[3rem] w-[3rem] cursor-pointer content-center disabled:cursor-not-allowed disabled:opacity-50 active:[&>svg]:scale-none!"
       type="button"
@@ -25,14 +34,14 @@ const slidesHtml = children.map((child) => child.outerHTML).join("");
         name="ri:arrow-drop-left-line"
       /></button
     >
-    <div class="flex">
+    <div class="flex gap-2 mx-4">
       {
         Array.from({ length: numSlides }).map(() => (
           <button
-            class="page-button h-[3rem] w-[3rem] cursor-pointer content-center active:[&>div]:scale-none!"
+            class="page-button flex items-center justify-center cursor-pointer content-center active:[&>div]:scale-none!"
             type="button"
           >
-            <div class="mx-auto h-[0.5rem] w-[0.5rem] rounded-full bg-black transition dark:bg-zinc-200" />
+            <div class="h-[0.5rem] w-[0.5rem] rounded-full bg-black/40 transition dark:bg-zinc-200/40" />
           </button>
         ))
       }
@@ -46,15 +55,6 @@ const slidesHtml = children.map((child) => child.outerHTML).join("");
       /></button
     >
   </div>
-  <div
-    class="carousel-viewport mx-[calc(var(--slide-gap)/-2)] w-[calc(var(--actual-text-width)+var(--slide-gap))]"
-  >
-    <div
-      class="carousel mx-[calc(var(--actual-inline-margin)*-1+var(--slide-gap)/2)] flex snap-x snap-mandatory scroll-pl-[calc(var(--actual-inline-margin)-var(--slide-gap)/2)] overflow-scroll px-[var(--actual-inline-margin)] [scrollbar-width:none]"
-    >
-      <Fragment set:html={slidesHtml} />
-    </div>
-  </div>
 </div>
 
 <script>
@@ -63,12 +63,9 @@ const slidesHtml = children.map((child) => child.outerHTML).join("");
   ) as NodeListOf<HTMLDivElement>;
 
   carousels.forEach((wrapper) => {
-    const carouselViewport = wrapper.querySelector(
-      "div.carousel-viewport",
+    const scrollContainer = wrapper.querySelector(
+      "div.carousel",
     ) as HTMLDivElement;
-    const slides = wrapper.querySelectorAll(
-      "div.slide",
-    ) as NodeListOf<HTMLDivElement>;
     const slideViewports = wrapper.querySelectorAll(
       "div.slide-viewport",
     ) as NodeListOf<HTMLDivElement>;
@@ -83,35 +80,58 @@ const slidesHtml = children.map((child) => child.outerHTML).join("");
     ) as NodeListOf<HTMLButtonElement>;
 
     if (
-      !carouselViewport ||
+      !scrollContainer ||
       !prevButton ||
       !nextButton ||
-      slides.length === 0
+      slideViewports.length === 0
     ) {
       return;
     }
 
     let currentIndex = 0;
+    // Flag to suppress IntersectionObserver updates during programmatic scrolls,
+    // which would otherwise cause the double-step bug.
+    let isProgrammaticScroll = false;
+    let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
 
     function updateButtonStates() {
       prevButton.disabled = currentIndex === 0;
-      nextButton.disabled = currentIndex === slides.length - 1;
+      nextButton.disabled = currentIndex === slideViewports.length - 1;
       paginationButtons.forEach((item, index) => {
+        item.classList.toggle("active", index === currentIndex);
+      });
+      slideViewports.forEach((item, index) => {
         item.classList.toggle("active", index === currentIndex);
       });
     }
 
+    function scrollToSlide(index: number, smooth = true) {
+      const targetSlide = slideViewports[index];
+      const containerWidth = scrollContainer.offsetWidth;
+      const slideWidth = targetSlide.offsetWidth;
+      const scrollLeft = targetSlide.offsetLeft - containerWidth / 2 + slideWidth / 2;
+
+      if (smooth) {
+        isProgrammaticScroll = true;
+        if (scrollEndTimer) clearTimeout(scrollEndTimer);
+        scrollContainer.scrollTo({ left: scrollLeft, behavior: "smooth" });
+        // After smooth scroll finishes (~400ms), re-enable the observer.
+        scrollEndTimer = setTimeout(() => {
+          isProgrammaticScroll = false;
+        }, 600);
+      } else {
+        // Instant scroll — does NOT affect page scroll position.
+        scrollContainer.scrollLeft = scrollLeft;
+      }
+    }
+
     function goToSlide(index: number) {
-      if (index < 0 || index >= slides.length) {
+      if (index < 0 || index >= slideViewports.length) {
         return;
       }
-
-      slideViewports[index].scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "start",
-      });
+      currentIndex = index;
       updateButtonStates();
+      scrollToSlide(index);
     }
 
     prevButton.addEventListener("click", () => {
@@ -128,47 +148,49 @@ const slidesHtml = children.map((child) => child.outerHTML).join("");
       });
     });
 
+    // Initial centering — instant, so the page doesn't scroll on load.
+    scrollToSlide(0, false);
     updateButtonStates();
 
-    if (slideViewports.length === 0) {
-      return;
+    // Use scroll event to sync highlighted slide with the one closest to center.
+    // This correctly handles trackpad/mouse wheel free scrolling.
+    let scrollDebounce: ReturnType<typeof setTimeout> | null = null;
+
+    function updateActiveFromScroll() {
+      if (isProgrammaticScroll) return;
+      const containerCenter = scrollContainer.scrollLeft + scrollContainer.offsetWidth / 2;
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+      slideViewports.forEach((slide, index) => {
+        const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+        const distance = Math.abs(slideCenter - containerCenter);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = index;
+        }
+      });
+      if (closestIndex !== currentIndex) {
+        currentIndex = closestIndex;
+        updateButtonStates();
+      }
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntries = entries.filter((entry) => entry.isIntersecting);
-        if (visibleEntries.length === 0) {
-          return;
+    scrollContainer.addEventListener("scroll", () => {
+      // Update highlight in real time while scrolling.
+      updateActiveFromScroll();
+      // Snap to the closest slide once scrolling settles.
+      if (scrollDebounce) clearTimeout(scrollDebounce);
+      scrollDebounce = setTimeout(() => {
+        if (!isProgrammaticScroll) {
+          scrollToSlide(currentIndex);
         }
-
-        const mostVisible = visibleEntries.reduce((prev, current) =>
-          current.intersectionRatio > prev.intersectionRatio ? current : prev,
-        );
-
-        const target = mostVisible.target as HTMLElement;
-        const nextIndex = Number(target.dataset.index ?? "-1");
-        if (Number.isNaN(nextIndex) || nextIndex === currentIndex) {
-          return;
-        }
-
-        currentIndex = nextIndex;
-        updateButtonStates();
-      },
-      {
-        root: carouselViewport,
-        threshold: 0.5,
-      },
-    );
-
-    slideViewports.forEach((slideViewport) => observer.observe(slideViewport));
+      }, 150);
+    });
   });
 </script>
 
 <style>
   @reference "../styles/global.css";
-  :root {
-    --slide-gap: 1rem;
-  }
 
   @media (hover: none) and (pointer: coarse) {
     .navigation-button {
@@ -177,7 +199,7 @@ const slidesHtml = children.map((child) => child.outerHTML).join("");
   }
 
   .page-button.active > div {
-    @apply scale-[1.4] bg-orange-600 dark:bg-orange-300;
+    @apply scale-[1.5] bg-black dark:bg-white;
   }
 
   .page-button:active > div {
@@ -187,7 +209,7 @@ const slidesHtml = children.map((child) => child.outerHTML).join("");
   @media (hover: hover) {
     .page-button:hover > div,
     .navigation-button:hover:not(:disabled) > svg {
-      @apply scale-[1.4];
+      @apply scale-[1.3];
     }
   }
 </style>
