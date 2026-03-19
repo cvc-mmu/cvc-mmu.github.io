@@ -23,9 +23,9 @@ links:
   # - name: Paper
   #   url: 
     # icon: ri:file-pdf-2-line
-  - name: arXiv
-    url: 
-    icon: academicons:arxiv
+  # - name: arXiv
+  #   url: 
+  #   icon: academicons:arxiv
   - name: Code
     url: https://github.com/cvc-mmu/salmubench
     icon: ri:github-line
@@ -35,9 +35,9 @@ links:
   - name: Models
     url: https://huggingface.co/cvc-mmu/clip-vit-b-16-salmu-compromised
     icon: ri:robot-2-line
-  - name: Leaderboard
-    url: 
-    icon: ri:bar-chart-line
+  # - name: Leaderboard
+  #   url: 
+    # icon: ri:bar-chart-line
   - name: Citation
     url: "#citation"
     icon: ri:quote-text
@@ -46,7 +46,7 @@ links:
 theme: light
 
 # This is the icon that appears in the user's browser tab. To customize, change the favicon.svg file in /public/, or add your own file to /public/ and change the filename here.
-favicon: favicon.svg
+favicon: cvc_icon.jpg
 
 # These keys are optional. If a link to your project page is in a Google search result, text message, or social media post, it will often appear as a "link preview card" based on its title, description, favicon, and thumbnail. After you publish your page, you can double check that these previews look right using [this tool](https://linkpreview.xyz/)
 description: SALMUBench is a benchmark for sensitive association-level multimodal unlearning in CLIP-style models, with synthetic data, reference models, evaluation scripts, and leaderboards.
@@ -67,7 +67,7 @@ import Wide from "./components/Wide.astro";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/starwind/tabs";
 import { Comparison } from "./components/Comparison.tsx";
 
-import outside from "./assets/outside.mp4";
+import overview from "@/assets/overview.png"
 
 import datasetSplits from "@/assets/dataset-splits.jpg"
 
@@ -76,7 +76,7 @@ import sensitive2 from "@/assets/00011747_034_ar-1.33.png"
 import sensitive3 from "@/assets/00011747_028_ar-1.00.png"
 import sensitive4 from "@/assets/00011747_074_ar-1.33.png"
 
-<Video src={outside} />
+<Picture src={overview} alt="Diagram illustrating the SALMUBench benchmark overview" />
 
 <HighlightedSection>
 
@@ -90,6 +90,8 @@ As multimodal models like CLIP become integral to downstream systems, the need t
 
 SALMUBench is a benchmark for evaluating **association-level multimodal unlearning** in CLIP-style models.
 
+Unlike prior unlearning evaluations that focus on coarse metrics, SALMUBench targets fine-grained association-level forgetting.
+
 It provides:
 - A synthetic dataset of about **60K persona-attribute associations**
 - A **_Compromised_** CLIP model trained on these sensitive associations
@@ -97,14 +99,14 @@ It provides:
 - A structured evaluation protocol with holdout splits that diagnose forgetting and collateral damage
 
 SALMUBench evaluates unlearning along two main pillars:
-- **Forgetting Efficacy**: Has the model removed the targeted sensitive associations?
+- **Forgetting Efficacy**: has the model removed the targeted sensitive associations?
 - **Utility Impact**: has the model preserved general capability and avoided collateral forgetting?
 
 ***
 
 ## Dataset
 
-SALMUBench is built on a synthetic dataset of fictitious personas associated with sensitive private information such as names, locations, email addresses, phone numbers, and financial identifiers. Images are identity-preserving synthetic portraits, and captions are paraphrased to create semantically varied associations, making unlearning harder than simple string removal.
+SALMUBench is built on a synthetic dataset of fictitious personas associated with sensitive private information such as names, locations, email addresses, phone numbers, and financial identifiers. Images are identity-preserving synthetic portraits, and captions are paraphrased to create semantically varied associations, making unlearning substantially harder than simple string or identity removal, as associations must be removed without harming related concepts.
 
 
 ### Examples of Sensitive Associations
@@ -136,6 +138,8 @@ The examples below are fully synthetic and illustrate the type of sensitive pers
 
 ## Evaluation Protocol
 
+The protocol is based on four key evaluation splits: `forget`, `retain_synth`, `holdout_identity`, and `holdout_association`.
+
 SALMUBench evaluates unlearning across two pillars:
 
 ### Forgetting Efficacy
@@ -155,7 +159,7 @@ This protocol goes beyond a simple forget-vs-retain setup and enables diagnosis 
 <div class="mx-auto max-w-md">
   <Figure>
     <Picture slot="figure" src={datasetSplits} alt="Diagram illustrating the dataset splits: forget, holdout_identity, and holdout_association"/>
-    <Fragment slot="caption">Diagram illustrating the splits and subsets of the [SALMUBench evaluation dataset](https://huggingface.co/datasets/cvc-mmu/salmubench-512-redistributed).</Fragment>
+    <Fragment slot="caption">Splits and subsets of the SALMUBench training and evaluation datasets</Fragment>
   </Figure>
 </div>
 
@@ -169,13 +173,15 @@ SALMUBench reveals that current multimodal unlearning methods exhibit distinct f
 - **Catastrophic damage**: some methods forget effectively but severely degrade general utility
 - **Over-generalized forgetting**: some methods erase more than intended, harming unrelated identities or non-target associations
 
-Overall, our benchmark shows that utility-efficient deletion is feasible, but no current method fully solves the trade-off between precise forgetting and collateral damage.
+Overall, our benchmark shows that utility-efficient deletion is achievable, but no current method fully resolves the trade-off between precise forgetting and collateral damage.
 
 ***
 
 ## Leaderboard
 
-We maintain a [public leaderboard]() to track the performance of unlearning methods on SALMUBench. We encourage researchers to submit their results and compare against baselines.
+{/* We maintain a [public leaderboard]() to track the performance of unlearning methods on SALMUBench. We encourage researchers to submit their results and compare against baselines. */}
+
+A public leaderboard will be released soon to track the performance of unlearning methods on SALMUBench.
 
 ***
 
@@ -217,6 +223,13 @@ All SALMUBench resources are publicly available.
 
 ### Collection
 - [Hugging Face collection](https://huggingface.co/collections/cvc-mmu/salmubench)
+
+## Getting Started
+
+1. Download the SALMUBench benchmark dataset and the *Compromised* model
+2. Apply an unlearning method
+3. Evaluate using the provided scripts and benchmark splits
+4. Compare against the *Clean* reference model
 
 {/* ## Visuals
 
@@ -341,14 +354,13 @@ Add simple tables using [GitHub Flavored Markdown syntax](https://docs.github.co
 
 
 ```bibtex
-@inproceedings{SALMUBench, 
-    author={Selvas-Sala, Cai and Kang, Lei and Gomez, Lluis},  
-    title={SALMUBench: A Benchmark for Sensitive Association-Level Multimodal Unlearning}, 
-    booktitle={Proceedings of the Computer Vision and Pattern Recognition Conference (CVPR)}, 
-    month={}, 
-    year={2026}, 
-    pages={}
+@inproceedings{selvassala2026salmubench,
+  author = {Selvas-Sala, Cai and Kang, Lei and Gomez, Lluis},
+  title = {SALMUBench: A Benchmark for Sensitive Association-Level Multimodal Unlearning},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  year = {2026}
 }
+
 ```
 
 ***
