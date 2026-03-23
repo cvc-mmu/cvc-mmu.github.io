@@ -22,22 +22,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build SALMUBench site
-        uses: withastro/action@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          path: salmubench
+          node-version: 22
+          cache: npm
+          cache-dependency-path: salmubench/package-lock.json
+
+      - name: Install dependencies
+        working-directory: salmubench
+        run: npm ci
+
+      - name: Build SALMUBench site
+        working-directory: salmubench
+        run: npm run build
 
       - name: Prepare final Pages artifact
         run: |
           mkdir -p _site/salmubench
           cp -r salmubench/dist/* _site/salmubench/
 
-          # Future root Astro site example:
-          # cp -r home/dist/* _site/
-
-          # Temporary placeholder root page until the main site exists
-          if [ ! -f _site/index.html ]; then
-            cat > _site/index.html <<'EOF'
+          # Temporary root page until you build a real Astro homepage
+          cat > _site/index.html <<'EOF'
           <!doctype html>
           <html lang="en">
             <head>
@@ -54,7 +60,6 @@ jobs:
             </body>
           </html>
           EOF
-          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
