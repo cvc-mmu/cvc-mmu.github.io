@@ -9,11 +9,13 @@ authors:
       - Universitat Autònoma de Barcelona
     notes: []
   - name: Lei Kang
+    url: https://leitro.github.io/
     institution: 
       - Computer Vision Center
       - Universitat Autònoma de Barcelona
     notes: []
   - name: Lluis Gomez
+    url: https://lluisgomez.github.io/
     institution: 
       - Computer Vision Center
       - Universitat Autònoma de Barcelona
@@ -29,7 +31,7 @@ links:
   - name: Code
     url: https://github.com/cvc-mmu/salmubench
     icon: ri:github-line
-  - name: Dataset
+  - name: Datasets
     url: https://huggingface.co/datasets/cvc-mmu/salmubench-512-redistributed
     icon: ri:database-2-line
   - name: Models
@@ -38,9 +40,9 @@ links:
   # - name: Leaderboard
   #   url: 
     # icon: ri:bar-chart-line
-  - name: Citation
-    url: "#citation"
-    icon: ri:quote-text
+  - name: BibTeX
+    url: "citation"
+    icon: ri:file-code-line
 
 # The color theme of the page. Defaults to "device" (the preference set in the user's brower or operating system). Setting this to "light" or "dark" will override the user's preference. This is useful if your figures only look good in one theme.
 theme: light
@@ -66,6 +68,9 @@ import CarouselSlide from "./components/CarouselSlide.astro";
 import Wide from "./components/Wide.astro";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/starwind/tabs";
 import { Comparison } from "./components/Comparison.tsx";
+import { CitationToggle } from "./components/CitationToggle.tsx";
+import { CitationCodeBlock } from "./components/CitationCodeBlock.tsx";
+import { SALMUBENCH_BIBTEX } from "./lib/citations";
 
 import overview from "@/assets/overview.jpg"
 
@@ -352,16 +357,7 @@ Add simple tables using [GitHub Flavored Markdown syntax](https://docs.github.co
 
 ## Citation
 
-
-```bibtex
-@inproceedings{selvassala2026salmubench,
-  author = {Selvas-Sala, Cai and Kang, Lei and Gomez, Lluis},
-  title = {SALMUBench: A Benchmark for Sensitive Association-Level Multimodal Unlearning},
-  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
-  year = {2026}
-}
-
-```
+<CitationCodeBlock text={SALMUBENCH_BIBTEX} client:idle />
 
 ***
 

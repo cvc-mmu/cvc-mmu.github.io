@@ -1,0 +1,6 @@
+export const SALMUBENCH_BIBTEX = `@inproceedings{selvassala2026salmubench,
+  author = {Selvas-Sala, Cai and Kang, Lei and Gomez, Lluis},
+  title = {SALMUBench: A Benchmark for Sensitive Association-Level Multimodal Unlearning},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  year = {2026}
+}`;
